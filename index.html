@@ -194,6 +194,8 @@
     .route-map::before { width: 130%; height: 22px; top: 95px; left: -20px; }
     .route-map::after { width: 120%; height: 16px; top: 220px; left: -30px; transform: rotate(32deg); }
     .route-line { position: absolute; top: 48px; left: 16%; width: 68%; height: 190px; border: 4px dashed var(--terracotta); border-left-color: transparent; border-bottom-color: transparent; border-radius: 50%; transform: rotate(18deg); opacity: .85; }
+    .day-one-map .route-line { top: 48px; left: 15%; width: 70%; height: 190px; transform: rotate(18deg); }
+    .day-two-map .route-line { top: 58px; left: 12%; width: 76%; height: 170px; transform: rotate(-14deg); border-top-color: transparent; border-right-color: transparent; }
     .map-pin { position: absolute; z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; color: white; background: var(--terracotta); border: 3px solid white; border-radius: 50% 50% 50% 0; box-shadow: 0 3px 8px rgba(76,53,65,.2); transform: rotate(-45deg); }
     .map-pin span { transform: rotate(45deg); font-size: 1rem; }
     .pin-1 { top: 30px; left: 14%; } .pin-2 { top: 102px; left: 45%; } .pin-3 { top: 175px; right: 17%; } .pin-4 { bottom: 35px; left: 27%; }
@@ -266,6 +268,31 @@
       <p class="day-finish">第一天，先把城市走進心裡，再一起慢慢看夜色。</p>
     </section>
 
+    <section class="day route-day" aria-labelledby="route-day-one-title">
+      <div class="day-heading">
+        <h2 id="route-day-one-title">第一天地圖與路線</h2>
+        <span>示意版・之後可換成真實導航</span>
+      </div>
+      <div class="route-map day-one-map" aria-label="第一天台南行程與附近停車地點示意地圖">
+        <div class="route-line"></div>
+        <div class="map-pin pin-1"><span>1</span></div>
+        <div class="map-pin pin-2"><span>2</span></div>
+        <div class="map-pin pin-3"><span>3</span></div>
+        <div class="map-pin pin-4"><span>4</span></div>
+        <div class="map-pin parking parking-1"><span>P</span></div>
+        <div class="map-pin parking parking-2"><span>P</span></div>
+        <span class="map-label label-1">赤崁樓</span>
+        <span class="map-label label-2">國華街</span>
+        <span class="map-label label-3">神農街</span>
+        <span class="map-label label-4">夜間小吃</span>
+      </div>
+      <div class="map-legend">
+        <span>第一天景點 1 → 4</span>
+        <span class="legend-parking">附近停車點 P（示意）</span>
+      </div>
+      <p class="day-finish">路線：赤崁樓 → 國華街 → 神農街 → 夜間小吃</p>
+    </section>
+
     <section class="day timeline-day second-day" aria-labelledby="day-two">
       <div class="day-heading">
         <h2 id="day-two">第二天</h2>
@@ -308,14 +335,12 @@
       <p class="day-finish">第二天，把最後一段夕陽收進回憶裡，再帶著好心情回家。</p>
     </section>
 
-    <div class="note">小提醒：目前店名與時間皆為示意，出發前再一起換成確認過的資訊。</div>
-
-    <section class="day" aria-labelledby="route-title">
+    <section class="day route-day" aria-labelledby="route-day-two-title">
       <div class="day-heading">
-        <h2 id="route-title">地圖與路線</h2>
+        <h2 id="route-day-two-title">第二天地圖與路線</h2>
         <span>示意版・之後可換成真實導航</span>
       </div>
-      <div class="route-map" aria-label="台南行程與附近停車地點示意地圖">
+      <div class="route-map day-two-map" aria-label="第二天台南行程與附近停車地點示意地圖">
         <div class="route-line"></div>
         <div class="map-pin pin-1"><span>1</span></div>
         <div class="map-pin pin-2"><span>2</span></div>
@@ -323,16 +348,19 @@
         <div class="map-pin pin-4"><span>4</span></div>
         <div class="map-pin parking parking-1"><span>P</span></div>
         <div class="map-pin parking parking-2"><span>P</span></div>
-        <span class="map-label label-1">赤崁樓</span>
-        <span class="map-label label-2">孔廟・林百貨</span>
+        <span class="map-label label-1">孔廟</span>
+        <span class="map-label label-2">林百貨</span>
         <span class="map-label label-3">安平老街</span>
         <span class="map-label label-4">返程</span>
       </div>
       <div class="map-legend">
-        <span>行程景點 1 → 4</span>
+        <span>第二天景點 1 → 4</span>
         <span class="legend-parking">附近停車點 P（示意）</span>
       </div>
+      <p class="day-finish">路線：孔廟 → 林百貨 → 安平老街 → 返程</p>
     </section>
+
+    <div class="note">小提醒：目前店名與時間皆為示意，出發前再一起換成確認過的資訊。</div>
 
     <section class="day" aria-labelledby="before-trip">
       <div class="day-heading">
