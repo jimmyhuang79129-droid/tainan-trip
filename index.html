@@ -21,6 +21,7 @@
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
@@ -235,6 +236,14 @@
     .vote-results { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
     .vote-results li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: rgba(255,255,255,.72); border-radius: 10px; }
     .vote-count { color: var(--terracotta); font-weight: 800; }
+    .organizer-control { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .organizer-control h3, .poll-closed h3 { margin: 0 0 10px; font-size: 1.08rem; }
+    .organizer-form { display: grid; gap: 10px; }
+    .organizer-form label { color: var(--muted); font-size: .9rem; font-weight: 700; }
+    .organizer-form input { width: 100%; min-height: 46px; padding: 10px 12px; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 12px; font: inherit; }
+    .organizer-form button { min-height: 44px; padding: 9px 15px; color: #fff; background: #756f7a; border: 0; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
+    .organizer-form button:hover, .organizer-form button:focus { background: #5e5863; }
+    .organizer-status { min-height: 1.6em; margin: 0; color: var(--muted); font-size: .88rem; }
 
     @media (min-width: 600px) {
       header { padding-top: 62px; }
@@ -345,19 +354,34 @@
         <span>大家一起選</span>
       </div>
       <div class="card">
-        <form class="vote-form" id="vote-form">
-          <label for="nickname">暱稱</label>
-          <input id="nickname" name="nickname" type="text" maxlength="40" required placeholder="例如：小太陽">
-          <label for="choice">想吃哪一個？</label>
-          <select id="choice" name="choice" required>
-            <option value="示意選項 A">示意選項 A</option>
-            <option value="示意選項 B">示意選項 B</option>
-            <option value="示意選項 C">示意選項 C</option>
-          </select>
-          <button type="submit">送出投票</button>
-          <p class="vote-status" id="vote-status" role="status" aria-live="polite"></p>
-        </form>
-        <ul class="vote-results" id="vote-results" aria-label="晚餐投票結果"></ul>
+        <div id="public-vote-area">
+          <form class="vote-form" id="vote-form">
+            <label for="nickname">暱稱</label>
+            <input id="nickname" name="nickname" type="text" maxlength="40" required placeholder="例如：小太陽">
+            <label for="choice">想吃哪一個？</label>
+            <select id="choice" name="choice" required>
+              <option value="示意選項 A">示意選項 A</option>
+              <option value="示意選項 B">示意選項 B</option>
+              <option value="示意選項 C">示意選項 C</option>
+            </select>
+            <button id="vote-submit" type="submit" disabled>送出投票</button>
+            <p class="vote-status" id="vote-status" role="status" aria-live="polite">確認投票狀態中…</p>
+          </form>
+          <ul class="vote-results" id="vote-results" aria-label="晚餐投票結果"></ul>
+          <section class="poll-closed" id="poll-closed-view" aria-live="polite" hidden>
+            <h3>投票已結束</h3>
+            <ul class="vote-results" id="closed-vote-results" aria-label="投票結束結果"></ul>
+          </section>
+        </div>
+        <section class="organizer-control" aria-labelledby="organizer-close-heading">
+          <h3 id="organizer-close-heading">結束投票（主揪用）</h3>
+          <form class="organizer-form" id="organizer-form">
+            <label for="organizer-passphrase">主揪密語</label>
+            <input id="organizer-passphrase" name="passphrase" type="password" required maxlength="200" autocomplete="off" placeholder="輸入密語">
+            <button id="close-poll-button" type="submit">結束投票</button>
+            <p class="organizer-status" id="organizer-status" role="status" aria-live="polite"></p>
+          </form>
+        </section>
       </div>
     </section>
 
@@ -382,26 +406,70 @@
   <script>
     const SUPABASE_URL = "https://fishdwsxhdzluftfgmyq.supabase.co";
     const SUPABASE_PUBLIC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpc2hkd3N4aGR6bHVmdGZnbXlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjIzMTgsImV4cCI6MjEwNjgzODMxOH0.ARUa6cP-2z9q1ITQ9SwgFHwaSw1kOpg4NK4AfvE5Jd8";
+    const CLOSE_POLL_URL = `${SUPABASE_URL}/functions/v1/close-poll`;
     const voteOptions = ["示意選項 A", "示意選項 B", "示意選項 C"];
     const voteForm = document.getElementById("vote-form");
+    const voteSubmit = document.getElementById("vote-submit");
     const voteStatus = document.getElementById("vote-status");
     const voteResults = document.getElementById("vote-results");
+    const pollClosedView = document.getElementById("poll-closed-view");
+    const closedVoteResults = document.getElementById("closed-vote-results");
+    const organizerForm = document.getElementById("organizer-form");
+    const closePollButton = document.getElementById("close-poll-button");
+    const organizerStatus = document.getElementById("organizer-status");
     const voteHeaders = { apikey: SUPABASE_PUBLIC_KEY, Authorization: `Bearer ${SUPABASE_PUBLIC_KEY}` };
+    let pollIsClosed = false;
 
-    function showVoteResults(rows) {
+    function renderResults(list, rows) {
       const counts = Object.fromEntries(voteOptions.map(option => [option, 0]));
       rows.forEach(row => { if (counts[row.choice] !== undefined) counts[row.choice] += 1; });
-      voteResults.innerHTML = voteOptions.map(option => `<li><span>${option}</span><span class="vote-count">${counts[option]} 票</span></li>`).join("");
+      list.replaceChildren();
+      voteOptions.forEach(option => {
+        const item = document.createElement("li");
+        const name = document.createElement("span");
+        const count = document.createElement("span");
+        name.textContent = option;
+        count.className = "vote-count";
+        count.textContent = `${counts[option]} 票`;
+        item.append(name, count);
+        list.append(item);
+      });
+    }
+
+    function renderPollState(isClosed, rows) {
+      pollIsClosed = isClosed;
+      if (isClosed) {
+        voteForm.hidden = true;
+        voteResults.hidden = true;
+        pollClosedView.hidden = false;
+        renderResults(closedVoteResults, rows);
+      } else {
+        voteForm.hidden = false;
+        voteResults.hidden = false;
+        pollClosedView.hidden = true;
+        voteSubmit.disabled = false;
+        renderResults(voteResults, rows);
+      }
     }
 
     async function loadVotes() {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/dinner_votes?select=choice`, { headers: voteHeaders });
       if (!response.ok) throw new Error("讀取投票結果失敗");
-      showVoteResults(await response.json());
+      return response.json();
+    }
+
+    async function loadPollState() {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/poll_status?select=is_closed&singleton=eq.true`, { headers: voteHeaders });
+      if (!response.ok) throw new Error("讀取投票狀態失敗");
+      const rows = await response.json();
+      if (rows.length !== 1) throw new Error("投票狀態不存在");
+      const votes = await loadVotes();
+      renderPollState(rows[0].is_closed, votes);
     }
 
     voteForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (pollIsClosed) return;
       const formData = new FormData(voteForm);
       const nickname = String(formData.get("nickname")).trim();
       const choice = String(formData.get("choice"));
@@ -415,13 +483,45 @@
         if (!response.ok) throw new Error("投票失敗");
         voteForm.reset();
         voteStatus.textContent = "投票成功，謝謝你！";
-        await loadVotes();
+        await loadPollState();
       } catch (error) {
         voteStatus.textContent = "目前無法投票，請稍後再試。";
+        try { await loadPollState(); } catch { voteSubmit.disabled = true; }
       }
     });
 
-    loadVotes().catch(() => { voteStatus.textContent = "目前無法載入投票結果。"; });
+    organizerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const passphraseInput = document.getElementById("organizer-passphrase");
+      const passphrase = passphraseInput.value;
+      organizerStatus.textContent = "正在確認密語…";
+      closePollButton.disabled = true;
+      try {
+        const response = await fetch(CLOSE_POLL_URL, {
+          method: "POST",
+          headers: { ...voteHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({ passphrase })
+        });
+        if (!response.ok) {
+          organizerStatus.textContent = response.status === 401 ? "密語不正確，投票仍開放。" : "目前無法結束投票，請稍後再試。";
+          return;
+        }
+        passphraseInput.value = "";
+        organizerStatus.textContent = "投票已結束。";
+        await loadPollState();
+      } catch (error) {
+        organizerStatus.textContent = "目前無法結束投票，請稍後再試。";
+      } finally {
+        closePollButton.disabled = false;
+      }
+    });
+
+    loadPollState().then(() => {
+      if (voteStatus.textContent === "確認投票狀態中…") voteStatus.textContent = "";
+    }).catch(() => {
+      voteStatus.textContent = "目前無法確認投票狀態，請稍後再試。";
+      voteSubmit.disabled = true;
+    });
   </script>
 </body>
 </html>
